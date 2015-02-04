@@ -44,30 +44,36 @@ mp1_poke:
 	movl    vmem_base_addr(,1),%edx
 	movb    %cl,(%edx,%eax,1)
 	ret
-
+	;; Every time an RTC interruput is generated, ,mp1_rtc_tasklet will be
+	;; called, tasklet will walk down mp1_list_head list, examing each
+	;; mp1_blink_struct structure. The function first decrement the
+	;; countdown. If the countdoen has reached 0 after the decrement,
+	;; the tasklet will examine the status field.
 mp1_rtc_tasklet:
-	pushl	%ebp
-	movl	%esp, %ebp
+init:	
+	pushl	%ebp			#save old base pointer
+	movl	%esp, %ebp	
 	
-	pushl	%esi
-	pushl	%edi
-	pushl	%ebx
+	pushl	%esi			#callee-save esi
+	pushl	%edi			#callee-save edi
+	pushl	%ebx			#callee_save ebx
 	
-	movl 	mp1_list_head, %ebx
+	movl 	mp1_list_head, %ebx	#ebx <-- list head
 	
 tasklet_loop:
-	cmpl	$0,%ebx
+	cmpl	$0,%ebx			#if list head is null then we are done
 	je	tasklet_end
 
-	decw	COUNTDOWN(%ebx)
-	cmpw	$0,COUNTDOWN(%ebx)
+	decw	COUNTDOWN(%ebx)		#decrement countdown
+	cmpl	$0,COUNTDOWN(%ebx)	#if countdown is not 0, to next struct
 	jg 	next_loop
-
+	
+	
 	movzwl	LOCATION(%ebx),%eax	#blink location is now in eax
 	shl	$1,%eax
 
-	testw	$0x1,STATUS(%ebx)
-	jz	currently_off
+	testw	$0x1,STATUS(%ebx)	#examine the status field
+	jz	currently_off		#if status is 0, then location has off_char character
 
 	movb	OFF_CHAR(%ebx),%cl
 	call 	mp1_poke
@@ -75,9 +81,9 @@ tasklet_loop:
 	jmp	end_blink
 
 curretly_off:
-	movb	ON_CHAR(%ebx), %cl
-	call 	mp1_poke
-	movw	ON_LENGTH(%ebx), %dx
+	movb	ON_CHAR(%ebx), %cl	#cl<--on_char
+	call 	mp1_poke		#poke
+	movw	ON_LENGTH(%ebx), %dx	#dx<--on_length
 
 end_blink:
 	movw	%dx, COUNTDOWN(%edx)
