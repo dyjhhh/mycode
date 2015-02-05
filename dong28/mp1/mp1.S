@@ -103,8 +103,15 @@ tasklet_end:
 
 mp1_ioctl:
 	movl	8(%esp), %eax
+	cmpl 	$3,%eax			#eax<--cmd
+	jg err				#if cmd>3 throw error
+	cmp 	$0,%eax			#if cms<0 throw error
+	jl err_ioctl
 	jmp	*call_table(,%eax,4)
-
+err_ioctl:
+	movl $-1, %eax			#return -1
+	ret
+	
 mp1_ioctl_add:
 	pushl	%ebp
 	movl	%esp, %ebp
@@ -136,15 +143,15 @@ mp1_ioctl_add:
 	jae	add_fail_return
 
 	#Mark this structure as valid
-		movw    $0x1,STATUS(%ebx)  # Mark it as on
-	        movw    ON_LENGTH(%ebx),%dx
-	        movw    %dx,COUNTDOWN(%ebx)
+	movw    $0x1,STATUS(%ebx) 
+	movw    ON_LENGTH(%ebx),%dx	#set the countdown filed equal to on_length field
+	movw    %dx,COUNTDOWN(%ebx)
 
-	        # Allocate some memory, pointer returned in EAX
-	        pushl   $STRUCT_SIZE
-	        call    mp1_malloc
-	        add     $4, %esp
-		cmpl	$0, %eax
+	# Allocate some memory, pointer returned in EAX
+	pushl   $STRUCT_SIZE
+	call    mp1_malloc
+	add     $4, %esp
+	cmpl	$0, %eax	
 		je	add_fail_return
 
 	        # Save EAX
@@ -179,7 +186,7 @@ add_fail_return:
 add_success_return:
 	        movl    $0, %eax
 add_leave:
-	        popl    %ebx
+	        popl    %ebx		#restore registers and leave
 	        popl    %edi
 	        popl    %esi
 
