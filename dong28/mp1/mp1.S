@@ -136,20 +136,249 @@ mp1_ioctl_add:
 	jae	add_fail_return
 
 	#Mark this structure as valid
-	movw
+		movw    $0x1,STATUS(%ebx)  # Mark it as on
+	        movw    ON_LENGTH(%ebx),%dx
+	        movw    %dx,COUNTDOWN(%ebx)
 
+	        # Allocate some memory, pointer returned in EAX
+	        pushl   $STRUCT_SIZE
+	        call    mp1_malloc
+	        add     $4, %esp
+		cmpl	$0, %eax
+		je	add_fail_return
 
+	        # Save EAX
+	        pushl   %eax
 
+	        pushl   $STRUCT_SIZE
+	        pushl   %ebx
+	        pushl   %eax
+	        call    ece391_memcpy
+	        addl    $12, %esp
 
+	        # Restore the value from EAX into EDX
+	        popl    %edx
 
+	        # Insert this new item at the front of the list
+	        movl    mp1_list_head, %eax
+	        movl    %eax, NEXT(%edx)
+	        movl    %edx, mp1_list_head
+
+display:
+	        # Display the character
+	        movzwl  LOCATION(%edx),%eax
+	        shll    $1,%eax
+	        movb    ON_CHAR(%edx),%cl
+	        call    mp1_poke
+	        jmp     add_success_return
+
+add_fail_return:
+	        movl    $-1,%eax
+	        jmp     add_leave
+
+add_success_return:
+	        movl    $0, %eax
+add_leave:
+	        popl    %ebx
+	        popl    %edi
+	        popl    %esi
+
+	        leave
+	        ret
 
 mp1_ioctl_remove:
-	ret
+	        pushl   %ebp
+	        movl    %esp, %ebp
+
+	        pushl   %esi
+	        pushl   %edi
+	        pushl   %ebx
+
+	        pushl   8(%ebp)
+	        call    mp1_find_helper
+	        addl    $4, %esp
+	        cmpl    $0, %eax
+	        je      remove_fail_return
+
+	        # Found the right element.  Now find the
+	        # previous pointer in the list, and remove it
+	        # We should not fail here, because mp1_find_helper
+	        # returned a valid list element
+
+	        leal    mp1_list_head, %edx
+remove_find_prev:
+	        cmp     %eax, (%edx)
+	        je      found_prev
+	        movl    (%edx), %edx
+	        leal    NEXT(%edx), %edx
+	        jmp     remove_find_prev
+
+found_prev:
+	        # Perform the removal
+	        movl    NEXT(%eax), %ecx
+	        movl    %ecx, (%edx)
+
+free_mem:
+	        pushl   %eax
+	        call    mp1_free
+	        addl    $4, %esp
+	        jmp     remove_success_return
+
+remove_fail_return:
+	        movl    $-1,%eax
+	        jmp     remove_leave
+
+remove_success_return:
+	        movl    $0, %eax
+remove_leave:
+	        popl    %ebx
+	        popl    %edi
+	        popl    %esi
+
+	        leave
+	        ret
+	        
         
 mp1_ioctl_find:
-	ret
+		pushl   %ebp
+	        movl    %esp, %ebp
+	        subl    $2,%esp
+
+	        pushl   %esi
+	        pushl   %edi
+	        pushl   %ebx
+
+	        pushl   $2
+	        pushl   8(%ebp)
+	        leal    -2(%ebp),%edi
+	        pushl   %edi
+	        call    ece391_memcpy
+	        addl    $12,%esp
+
+	        cmp     $0,%eax
+	        jne     find_fail_return
+
+	        movzwl  -2(%ebp),%eax
+	        pushl   %eax
+	        call    mp1_find_helper
+	        addl    $4, %esp
+	        cmpl    $0, %eax
+	        je      find_fail_return
+
+	        pushl   $STRUCT_SIZE
+	        pushl   %eax
+	        pushl   8(%ebp)
+	        call    ece391_memcpy
+	        addl    $12,%esp
+
+	        cmp     $0,%eax
+	        je      find_success_return
+
+find_fail_return:
+	        movl    $-1,%eax
+	        jmp     find_leave
+
+find_success_return:
+	        movl    $0, %eax
+find_leave:
+	        popl    %ebx
+	        popl    %edi
+	        popl    %esi
+
+	        leave
+	        ret
+
+mp1_find_helper:
+	        pushl	%ebp
+	        movl	%esp, %ebp
+
+	        pushl   %ebx
+
+	        movw	8(%ebp), %ax
+	        movl	mp1_list_head, %ebx
+loop:
+	        cmpl    $0, %ebx
+	        je      helper_fail_return
+
+	        cmpw    %ax, LOCATION(%ebx)
+	        je      helper_success_return
+
+	        movl    NEXT(%ebx), %ebx
+	        jmp     loop
+
+helper_fail_return:
+	        xorl    %eax, %eax
+	        jmp     helper_leave
+
+helper_success_return:
+	        movl    %ebx, %eax
+
+helper_leave:
+	        popl    %ebx
+	        leave
+	        ret
+	
 
 mp1_ioctl_sync:
-	ret
+		pushl   %ebp
+	        movl    %esp, %ebp
+
+	        pushl   %esi
+	        pushl   %edi
+	        pushl   %ebx
+
+sync_find_first:
+	        movl    8(%ebp), %eax
+	        shr     $16, %eax
+	        pushl   %eax
+	        call    mp1_find_helper
+	        addl    $4, %esp
+	        cmpl    $0, %eax
+	        je      sync_fail_return
+	        movl    %eax, %esi
+
+	        movl    8(%ebp), %eax
+	        andl    $0xFFFF, %eax
+	        pushl   %eax
+	        call    mp1_find_helper
+	        addl    $4, %esp
+	        cmpl    $0, %eax
+	        je      sync_fail_return
+	        movl    %eax, %edi
+
+sync_copy_loop:
+	        movw    ON_LENGTH(%esi), %ax
+	        movw    %ax, ON_LENGTH(%edi)
+	        movw    OFF_LENGTH(%esi), %ax
+	        movw    %ax, OFF_LENGTH(%edi)
+	        movw    COUNTDOWN(%esi), %ax
+	        movw    %ax, COUNTDOWN(%edi)
+	        movw    STATUS(%esi), %ax
+	        movw    %ax, STATUS(%edi)
+
+	        movzwl  LOCATION(%edi), %eax
+	        shll    $1,%eax
+	        movzbl  OFF_CHAR(%edi),%ecx
+	        movzbl  ON_CHAR(%edi),%ebx
+	        testb   $0x1,STATUS(%edi)
+	        cmovl   %ebx, %ecx
+
+sync_display:
+	        call    mp1_poke
+	        jmp     sync_success_return
+
+sync_fail_return:
+	        movl    $-1,%eax
+	        jmp     sync_leave
+
+sync_success_return:
+	        movl    $0, %eax
+sync_leave:
+	        popl    %ebx
+	        popl    %edi
+	        popl    %esi
+
+	        leave
+	        ret
 
 .end
