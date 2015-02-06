@@ -210,8 +210,9 @@ restore:
 	ret
 	        
 
-mp1_ioctl_remove:
-	        pushl   %ebp
+ mp1_ioctl_remove:
+/* remove function done
+		pushl   %ebp
 	        movl    %esp, %ebp
 
 	        pushl   %esi
@@ -230,17 +231,19 @@ mp1_ioctl_remove:
 	        # returned a valid list element
 
 	        leal    mp1_list_head, %edx
+
 remove_find_prev:
-	        cmp     %eax, (%edx)
-	        je      found_prev
-	        movl    (%edx), %edx
+	        cmp     %eax, (%edx)		#check if current next is address
+	        je      found_prev		#move to found
+
+		movl    (%edx), %edx		#move to next in linked list
 	        leal    NEXT(%edx), %edx
 	        jmp     remove_find_prev
 
 found_prev:
 	        # Perform the removal
-	        movl    NEXT(%eax), %ecx
-	        movl    %ecx, (%edx)
+	        movl    NEXT(%eax), %ecx	#ecx <-- remove->next
+	        movl    %ecx, (%edx)		#prev->next is remove->next
 
 free_mem:
 	        pushl   %eax
@@ -259,11 +262,13 @@ remove_leave:
 	        popl    %edi
 	        popl    %esi
 
-	        leave
+	        leave	*/
 	        ret
 	        
+
         
 mp1_ioctl_find:
+	/* find function done
 		pushl   %ebp
 	        movl    %esp, %ebp
 	        subl    $2,%esp
@@ -274,28 +279,28 @@ mp1_ioctl_find:
 
 	        pushl   $2
 	        pushl   8(%ebp)
-	        leal    -2(%ebp),%edi
+	        leal    -2(%ebp),%edi		#edi <-- arg location
 	        pushl   %edi
-	        call    ece391_memcpy
+	        call    mp1_copy_to_user
 	        addl    $12,%esp
 
 	        cmp     $0,%eax
 	        jne     find_fail_return
 
-	        movzwl  -2(%ebp),%eax
+	        movzwl  -2(%ebp),%eax	
 	        pushl   %eax
 	        call    mp1_find_helper
 	        addl    $4, %esp
 	        cmpl    $0, %eax
 	        je      find_fail_return
 
-	        pushl   $STRUCT_SIZE
-	        pushl   %eax
-	        pushl   8(%ebp)
-	        call    ece391_memcpy
+	        pushl   $STRUCT_SIZE		#n is struct_size
+	        pushl   %eax			#mem address(kernel) is from
+	        pushl   8(%ebp)			#arg is to
+	        call    mp1_copy_to_user
 	        addl    $12,%esp
 
-	        cmp     $0,%eax
+	        cmp     $0,%eax			#check if copy worked
 	        je      find_success_return
 
 find_fail_return:
@@ -309,9 +314,10 @@ find_leave:
 	        popl    %edi
 	        popl    %esi
 
-	        leave
+	        leave		*/
 	        ret
 
+/* find helper function to verify location done
 mp1_find_helper:
 	        pushl	%ebp
 	        movl	%esp, %ebp
@@ -342,7 +348,8 @@ helper_leave:
 	        leave
 	        ret
 	
-
+*/
+	
 mp1_ioctl_sync:
 		pushl   %ebp
 	        movl    %esp, %ebp
