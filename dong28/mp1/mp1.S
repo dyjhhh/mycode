@@ -318,24 +318,24 @@ mp1_find_helper:
 
 	        pushl   %ebx
 
-	        movw	8(%ebp), %ax
-	        movl	mp1_list_head, %ebx
+	        movw	8(%ebp), %ax		#esi <-- argument (location)
+	        movl	mp1_list_head, %ebx	#ebx <-- address of head
 loop:
-	        cmpl    $0, %ebx
+	        cmpl    $0, %ebx		#if ebx is null, done
 	        je      helper_fail_return
 
-	        cmpw    %ax, LOCATION(%ebx)
+	        cmpw    %ax, LOCATION(%ebx)	#put location of address into ax
 	        je      helper_success_return
 
-	        movl    NEXT(%ebx), %ebx
-	        jmp     loop
+	        movl    NEXT(%ebx), %ebx	#put the next address in linked list into ebx
+	        jmp     loop			#continue to loop
 
 helper_fail_return:
-	        xorl    %eax, %eax
+	        xorl    %eax, %eax		#clear eax
 	        jmp     helper_leave
 
 helper_success_return:
-	        movl    %ebx, %eax
+	        movl    %ebx, %eax		#put the address in eax
 
 helper_leave:
 	        popl    %ebx
