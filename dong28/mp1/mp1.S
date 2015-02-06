@@ -106,18 +106,109 @@ mp1_ioctl:
 	cmpl 	$3,%eax			#eax<--cmd
 	jg err				#if cmd>3 throw error
 	cmp 	$0,%eax			#if cms<0 throw error
-	jl err_ioctl
+	jl err
 	jmp	*call_table(,%eax,4)
-err_ioctl:
+err
 	movl $-1, %eax			#return -1
 	ret
+
+
 	
 mp1_ioctl_add:
-	pushl	%ebp
+
+init:
+	pushl %ebp                          #save frame pointer
+	movl %esp, %ebp
+	pushl %ebx                          #callee-save ebx
+	pushl %esi                          #callee-save esi
+	pushl %edi                          #callee-save edi
+#Dynamically allcocate memory using mp1_malloc funtion to store a
+#copy of the structure
+	
+malloc:
+	movl 8(%ebp), %edi                  #edi <-- arg
+	cmp $0, %edi                        #if arg is null then skip
+	je restore
+	subl $4, %esp                       #allocate space for one local variable
+	movl $STRUCT_SIZE, -16(%ebp)        #set local variable to 16
+	call mp1_malloc                     #allocate using local var as param
+	cmp $0, %eax                        #check if malloc returned null
+	je err_add
+	addl $4, %esp		             #reclaim space from local variable
+#copy entire mp1_blink_struct from the user space strcuture to the newly allocated memory
+	
+translate:
+	subl $12, %esp                      #allocate space for 3 new variables
+	movl $STRUCT_SIZE, -16(%ebp)                 #put 16 in first variable (size)
+	movl %eax, -24(%ebp)                #newly malloced space is second variable (to)
+	movl %edi, -20(%ebp)                #arg is third variable (from)
+	movl %eax, %esi                     #esi <-- malloced memory
+	call mp1_copy_from_user             #copy data from user space
+	cmp $0, %eax                        #check if unable to write all bytes	       jne err_free_add
+
+#set the countdown field to be equal to the on_length field
+#and set the status field to 1
+#then insert this structure at the head of the linked list
+#usinf the mp1_list_head pointer
+	
+update_data:
+	movw 4(%esi), %dx                   #edx <-- on_length
+	movw %dx, 8(%esi)                   #countdown <-- on_length
+	movb $1, 10(%esi)                   #status <-- 1
+	movl mp1_list_head, %edi            #edi <-- address of old head
+	movl %edi, 12(%esi)                 #next <-- address of old head
+	movl %esi, mp1_list_head            #head <-- address of malloced memory
+
+#make a call to mp1_poke with the correct register parameter to immediately
+#display the character on the text-mode video screen
+#this effectively turns thr location on
+	
+#check if the location is inside the range 0 to 80*25-1
+poke:
+	movw 0(%esi), %ax                  #eax <-- location
+	cmp $0, %eax                        #check if eax is < 0
+	jl err_free_add
+	xorl %edi, %edi
+	addl $2, %edi
+	shll $10, %edi
+	subl $49, %edi                      #check if eax > 1999
+	cmp %edi, %eax
+	jg err_free_add
+	shlw $1, %ax                       #eax *= 2
+	movb 2(%esi), %cl                    #cl <-- on_char
+	call mp1_poke                      #output char to screen
+	jmp restore
+
+#the error handling prevent memory leaks
+#free the memory using mp1_free
+	
+err_free_add:
+	addl $8, %esp                       #restore local var space
+	movl %esi,-16(%ebp)
+	call mp1_free
+	
+err_add:
+	addl $4, %esp                       #restore local var space
+	movl $-1, %eax                      #eax <-- -1
+	pop %edi                            #restore registers and leave
+	pop %esi
+	pop %ebx
+	leave
+	ret
+	
+restore:
+	addl $12, %esp                      #restore local var space
+	movl $0, %eax                       #eax <-- 0
+	pop %edi                            #restore registers and leave
+	pop %esi
+	pop %ebx
+	leave
+	ret
+	        
+	pushl	%ebp		#save frame pointer
 	movl	%esp, %ebp
-        	
-	#Allocate temp structure on the stack
-	subl	$STRUCT_SIZE, %esp
+
+	subl 	$STRUCT_SIZE, %esp	#allocate temp structure on the stack
 	
 	#Preserve registers
 	pushl	%esi
@@ -151,47 +242,7 @@ mp1_ioctl_add:
 	pushl   $STRUCT_SIZE
 	call    mp1_malloc
 	add     $4, %esp
-	cmpl	$0, %eax	
-		je	add_fail_return
-
-	        # Save EAX
-	        pushl   %eax
-
-	        pushl   $STRUCT_SIZE
-	        pushl   %ebx
-	        pushl   %eax
-	        call    ece391_memcpy
-	        addl    $12, %esp
-
-	        # Restore the value from EAX into EDX
-	        popl    %edx
-
-	        # Insert this new item at the front of the list
-	        movl    mp1_list_head, %eax
-	        movl    %eax, NEXT(%edx)
-	        movl    %edx, mp1_list_head
-
-display:
-	        # Display the character
-	        movzwl  LOCATION(%edx),%eax
-	        shll    $1,%eax
-	        movb    ON_CHAR(%edx),%cl
-	        call    mp1_poke
-	        jmp     add_success_return
-
-add_fail_return:
-	        movl    $-1,%eax
-	        jmp     add_leave
-
-add_success_return:
-	        movl    $0, %eax
-add_leave:
-	        popl    %ebx		#restore registers and leave
-	        popl    %edi
-	        popl    %esi
-
-	        leave
-	        ret
+	cmpl	$0,
 
 mp1_ioctl_remove:
 	        pushl   %ebp
