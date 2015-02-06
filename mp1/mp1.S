@@ -44,13 +44,14 @@ mp1_poke:
 	movl    vmem_base_addr(,1),%edx
 	movb    %cl,(%edx,%eax,1)
 	ret
+	
 	;; Every time an RTC interruput is generated, ,mp1_rtc_tasklet will be
 	;; called, tasklet will walk down mp1_list_head list, examing each
 	;; mp1_blink_struct structure. The function first decrement the
 	;; countdown. If the countdoen has reached 0 after the decrement,
 	;; the tasklet will examine the status field.
 mp1_rtc_tasklet:
-init:	
+init_tasklet
 	pushl	%ebp			#save old base pointer
 	movl	%esp, %ebp	
 	
@@ -117,11 +118,12 @@ err
 mp1_ioctl_add:
 
 init:
-	pushl %ebp                          #save frame pointer
+	pushl %ebp                      #save frame pointer
 	movl %esp, %ebp
-	pushl %ebx                          #callee-save ebx
-	pushl %esi                          #callee-save esi
-	pushl %edi                          #callee-save edi
+	pushl %ebx                      #callee-save ebx
+	pushl %esi                      #callee-save esi
+	pushl %edi	         	#callee-save edi
+	
 #Dynamically allcocate memory using mp1_malloc funtion to store a
 #copy of the structure
 	
@@ -135,6 +137,7 @@ malloc:
 	cmp $0, %eax                        #check if malloc returned null
 	je err_add
 	addl $4, %esp		             #reclaim space from local variable
+
 #copy entire mp1_blink_struct from the user space strcuture to the newly allocated memory
 	
 translate:
@@ -149,7 +152,7 @@ translate:
 #set the countdown field to be equal to the on_length field
 #and set the status field to 1
 #then insert this structure at the head of the linked list
-#usinf the mp1_list_head pointer
+#using the mp1_list_head pointer
 	
 update_data:
 	movw 4(%esi), %dx                   #edx <-- on_length
@@ -164,6 +167,7 @@ update_data:
 #this effectively turns thr location on
 	
 #check if the location is inside the range 0 to 80*25-1
+
 poke:
 	movw 0(%esi), %ax                  #eax <-- location
 	cmp $0, %eax                        #check if eax is < 0
@@ -205,44 +209,6 @@ restore:
 	leave
 	ret
 	        
-	pushl	%ebp		#save frame pointer
-	movl	%esp, %ebp
-
-	subl 	$STRUCT_SIZE, %esp	#allocate temp structure on the stack
-	
-	#Preserve registers
-	pushl	%esi
-	pushl	%edi
-	pushl	%ebx
-
-	#Get pointer to temp structure
-	leal	-STRUCT_SIZE(%ebp),%ebx
-
-	#Copy user data onto the stack
-	pushl	$STRUCT_SIZE
-	pushl	8(%ebp)
-	pushl	%ebx
-	call	ece391_memcpy
-	addl	$12,%esp
-
-	#Check that the copy succeeded
-	cmpl	$0,%eax
-	jne	add_fail_return
-
-	#Check that the location is valid
-	cmpw	$80*25,LOCATION(%ebx)
-	jae	add_fail_return
-
-	#Mark this structure as valid
-	movw    $0x1,STATUS(%ebx) 
-	movw    ON_LENGTH(%ebx),%dx	#set the countdown filed equal to on_length field
-	movw    %dx,COUNTDOWN(%ebx)
-
-	# Allocate some memory, pointer returned in EAX
-	pushl   $STRUCT_SIZE
-	call    mp1_malloc
-	add     $4, %esp
-	cmpl	$0,
 
 mp1_ioctl_remove:
 	        pushl   %ebp
