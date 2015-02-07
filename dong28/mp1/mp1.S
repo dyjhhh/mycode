@@ -21,7 +21,7 @@ call_table:
 	.long mp1_ioctl_add
 	.long mp1_ioctl_remove
 	.long mp1_ioctl_find
-	.long mp1_iotcl_sync
+	.long mp1_ioctl_sync
 
 .text					# section declaration
 
@@ -45,13 +45,13 @@ mp1_poke:
 	movb    %cl,(%edx,%eax,1)
 	ret
 	
-	;; Every time an RTC interruput is generated, ,mp1_rtc_tasklet will be
-	;; called, tasklet will walk down mp1_list_head list, examing each
-	;; mp1_blink_struct structure. The function first decrement the
-	;; countdown. If the countdoen has reached 0 after the decrement,
-	;; the tasklet will examine the status field.
+	// Every time an RTC interruput is generated, ,mp1_rtc_tasklet will be
+	// called, tasklet will walk down mp1_list_head list, examing each
+	// mp1_blink_struct structure. The function first decrement the
+	// countdown. If the countdoen has reached 0 after the decrement,
+	// the tasklet will examine the status field.
 mp1_rtc_tasklet:
-init_tasklet
+init_tasklet:
 	pushl	%ebp			#save old base pointer
 	movl	%esp, %ebp	
 	
@@ -81,14 +81,14 @@ tasklet_loop:
 	movw	OFF_LENGTH(%ebx),%dx
 	jmp	end_blink
 
-curretly_off:
+currently_off:
 	movb	ON_CHAR(%ebx), %cl	#cl<--on_char
 	call 	mp1_poke		#poke
 	movw	ON_LENGTH(%ebx), %dx	#dx<--on_length
 
 end_blink:
 	movw	%dx, COUNTDOWN(%edx)
-	xorw	%0x1, STATUS(%ebx)
+	xorw	$0x1, STATUS(%ebx)
 
 next_loop:
 	movl	NEXT(%ebx), %ebx
@@ -109,7 +109,7 @@ mp1_ioctl:
 	cmp 	$0,%eax			#if cms<0 throw error
 	jl err
 	jmp	*call_table(,%eax,4)
-err
+err:
 	movl $-1, %eax			#return -1
 	ret
 
@@ -268,7 +268,7 @@ remove_leave:
 
         
 mp1_ioctl_find:
-	/* find function done
+	// find function done
 		pushl   %ebp
 	        movl    %esp, %ebp
 	        subl    $2,%esp
@@ -314,10 +314,10 @@ find_leave:
 	        popl    %edi
 	        popl    %esi
 
-	        leave		*/
+	        leave		
 	        ret
 
-/* find helper function to verify location done
+// find helper function to verify location done
 mp1_find_helper:
 	        pushl	%ebp
 	        movl	%esp, %ebp
@@ -348,7 +348,7 @@ helper_leave:
 	        leave
 	        ret
 	
-*/
+
 	
 mp1_ioctl_sync:
 		pushl   %ebp
