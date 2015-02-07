@@ -1,0 +1,45 @@
+#include <linux/module.h>
+#include <linux/vermagic.h>
+#include <linux/compiler.h>
+
+MODULE_INFO(vermagic, VERMAGIC_STRING);
+
+struct module __this_module
+__attribute__((section(".gnu.linkonce.this_module"))) = {
+ .name = KBUILD_MODNAME,
+ .init = init_module,
+#ifdef CONFIG_MODULE_UNLOAD
+ .exit = cleanup_module,
+#endif
+ .arch = MODULE_ARCH_INIT,
+};
+
+static const struct modversion_info ____versions[]
+__attribute_used__
+__attribute__((section("__versions"))) = {
+	{ 0xfc4fa38d, "struct_module" },
+	{ 0x70f44cfa, "crypto_unregister_template" },
+	{ 0xb3cd396d, "crypto_register_template" },
+	{ 0x37a0cba, "kfree" },
+	{ 0x89ab476b, "crypto_drop_spawn" },
+	{ 0x4ee15b9e, "crypto_mod_put" },
+	{ 0x9a338345, "crypto_hash_type" },
+	{ 0xc8e481d2, "crypto_alloc_instance" },
+	{ 0xbb86714b, "crypto_get_attr_alg" },
+	{ 0xd16712f3, "crypto_check_attr_type" },
+	{ 0x115828de, "crypto_free_tfm" },
+	{ 0x4180129d, "crypto_spawn_tfm" },
+	{ 0x6b2dc060, "dump_stack" },
+	{ 0x1b7d4074, "printk" },
+	{ 0xda4008e6, "cond_resched" },
+	{ 0xf6ba3642, "mem_map" },
+	{ 0x89608ec4, "crypto_km_types" },
+};
+
+static const char __module_depends[]
+__attribute_used__
+__attribute__((section(".modinfo"))) =
+"depends=";
+
+
+MODULE_INFO(srcversion, "A934141F3E903942BFB3E5C");
