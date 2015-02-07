@@ -1,0 +1,126 @@
+#include <linux/module.h>
+#include <linux/vermagic.h>
+#include <linux/compiler.h>
+
+MODULE_INFO(vermagic, VERMAGIC_STRING);
+
+struct module __this_module
+__attribute__((section(".gnu.linkonce.this_module"))) = {
+ .name = KBUILD_MODNAME,
+ .init = init_module,
+#ifdef CONFIG_MODULE_UNLOAD
+ .exit = cleanup_module,
+#endif
+ .arch = MODULE_ARCH_INIT,
+};
+
+static const struct modversion_info ____versions[]
+__attribute_used__
+__attribute__((section("__versions"))) = {
+	{ 0xfc4fa38d, "struct_module" },
+	{ 0xa71fc843, "register_netdevice" },
+	{ 0x12da5bb2, "__kmalloc" },
+	{ 0x9afe9c91, "__mod_timer" },
+	{ 0x6ad778e5, "up_read" },
+	{ 0x6d819be5, "unregister_netdevice" },
+	{ 0x89b301d4, "param_get_int" },
+	{ 0x75b38522, "del_timer" },
+	{ 0xda1eae6d, "ip_route_output_key" },
+	{ 0x3e45e9ff, "register_inetaddr_notifier" },
+	{ 0xb8e064c3, "seq_open" },
+	{ 0x1b6314fd, "in_aton" },
+	{ 0x5eb621a6, "seq_puts" },
+	{ 0xc7a4fbed, "rtnl_lock" },
+	{ 0x6a377716, "netif_carrier_on" },
+	{ 0xe45377e8, "dev_get_by_name" },
+	{ 0x461add1c, "skb_clone" },
+	{ 0xaad2169d, "skb_copy" },
+	{ 0x1e01de09, "ethtool_op_get_sg" },
+	{ 0x806d5133, "param_array_get" },
+	{ 0x49989c66, "seq_printf" },
+	{ 0x63ecad53, "register_netdevice_notifier" },
+	{ 0xfdd5a68c, "netif_carrier_off" },
+	{ 0x4d1372b5, "remove_proc_entry" },
+	{ 0x8beca583, "dev_set_allmulti" },
+	{ 0x4e830a3e, "strnicmp" },
+	{ 0x9e13ae1e, "alloc_netdev" },
+	{ 0x98bd6f46, "param_set_int" },
+	{ 0x1d26aa98, "sprintf" },
+	{ 0x14fed0de, "skb_realloc_headroom" },
+	{ 0x89cef6fb, "param_array_set" },
+	{ 0x8cb9afbb, "seq_read" },
+	{ 0x74b83753, "sysfs_remove_group" },
+	{ 0x7d11c268, "jiffies" },
+	{ 0xfe769456, "unregister_netdevice_notifier" },
+	{ 0xbce67cc4, "down_read" },
+	{ 0x2fd662ce, "dev_mc_add" },
+	{ 0xda4008e6, "cond_resched" },
+	{ 0x12f237eb, "__kzalloc" },
+	{ 0x581a0674, "__pskb_pull_tail" },
+	{ 0xaa136450, "param_get_charp" },
+	{ 0x425d2596, "dev_set_mac_address" },
+	{ 0x77152044, "proc_mkdir" },
+	{ 0xb74101df, "proc_net" },
+	{ 0x8d3894f2, "_ctype" },
+	{ 0xc0d62d48, "arp_create" },
+	{ 0x1b7d4074, "printk" },
+	{ 0x859204af, "sscanf" },
+	{ 0x85509ff6, "sysfs_create_group" },
+	{ 0x65414e67, "dev_valid_name" },
+	{ 0x4cb0f3ca, "free_netdev" },
+	{ 0x2f287f0d, "copy_to_user" },
+	{ 0x78d65114, "dev_close" },
+	{ 0x807477f3, "class_remove_file" },
+	{ 0x7f82f13d, "dev_remove_pack" },
+	{ 0x20187c7, "mod_timer" },
+	{ 0x5ef7324, "sysfs_remove_link" },
+	{ 0xc17bd935, "class_create_file" },
+	{ 0x2cde2d59, "up_write" },
+	{ 0x60610c03, "down_write" },
+	{ 0x78178274, "dev_mc_delete" },
+	{ 0x4f8fad8e, "dev_open" },
+	{ 0x36d7f507, "ethtool_op_get_ufo" },
+	{ 0x72ee3ec7, "sysfs_create_link" },
+	{ 0xf3e10498, "skb_over_panic" },
+	{ 0x7dceceac, "capable" },
+	{ 0x3ff62317, "local_bh_disable" },
+	{ 0xade379d, "__alloc_skb" },
+	{ 0x760b437a, "unregister_inetaddr_notifier" },
+	{ 0xa369eedc, "kfree_skb" },
+	{ 0x6b2dc060, "dump_stack" },
+	{ 0x799aca4, "local_bh_enable" },
+	{ 0x174a08b6, "skb_under_panic" },
+	{ 0x4794fd7e, "arp_xmit" },
+	{ 0x99341c56, "create_proc_entry" },
+	{ 0x47f05cf, "ether_setup" },
+	{ 0x521bbb5b, "netdev_set_master" },
+	{ 0xfde9fe64, "init_timer" },
+	{ 0x2cd7da6c, "param_set_charp" },
+	{ 0xf6ebc03b, "net_ratelimit" },
+	{ 0xd43c6276, "seq_lseek" },
+	{ 0x83e0f1ba, "dev_set_promiscuity" },
+	{ 0x37a0cba, "kfree" },
+	{ 0x2e60bace, "memcpy" },
+	{ 0xd079e157, "dev_alloc_name" },
+	{ 0x8fe680c0, "ethtool_op_get_tx_csum" },
+	{ 0xca12f7bc, "ip_mc_rejoin_group" },
+	{ 0xb742fd7, "simple_strtol" },
+	{ 0x25669c3a, "ethtool_op_get_tso" },
+	{ 0x25da070, "snprintf" },
+	{ 0xdeee1def, "dev_add_pack" },
+	{ 0xee8ad456, "seq_release" },
+	{ 0x8235805b, "memmove" },
+	{ 0xf0a95146, "dev_queue_xmit" },
+	{ 0xd6c963c, "copy_from_user" },
+	{ 0x9dc75b15, "__init_rwsem" },
+	{ 0x6e720ff2, "rtnl_unlock" },
+	{ 0x159faa93, "dev_set_mtu" },
+};
+
+static const char __module_depends[]
+__attribute_used__
+__attribute__((section(".modinfo"))) =
+"depends=";
+
+
+MODULE_INFO(srcversion, "67CB67156D1216A7B62FDD8");
