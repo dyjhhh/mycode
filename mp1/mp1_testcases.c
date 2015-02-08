@@ -30,6 +30,10 @@ int main(void)
 	if(mp1_set_video_mode() == NULL) {
 		return -1;
 	}
+	for (i=0; i < 80*25*2; i+=2) { 
+	  vmem_base_addr[i] = ' '; 
+	  vmem_base_addr[i+1] = 7; 
+	}
 
 	rtc_fd = open("/dev/rtc", O_RDWR);
 
