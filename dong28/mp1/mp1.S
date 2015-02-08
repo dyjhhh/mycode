@@ -50,58 +50,57 @@ mp1_poke:
 	// mp1_blink_struct structure. The function first decrement the
 	// countdown. If the countdoen has reached 0 after the decrement,
 	// the tasklet will examine the status field.
+
 mp1_rtc_tasklet:
+
 init_tasklet:
-	pushl	%ebp			#save old base pointer
-	movl	%esp, %ebp	
-	
-	pushl	%esi			#callee-save esi
-	pushl	%edi			#callee-save edi
-	pushl	%ebx			#callee_save ebx
-	
-	movl 	mp1_list_head, %ebx	#ebx <-- list head
-	
+	        pushl %ebp                      #save old base pointer
+	        movl %esp, %ebp
+	        pushl %ebx                      #callee-save ebx
+	        pushl %edi                      #callee-save ecx
+	        pushl %esi                      #callee-save esi
+	        movl mp1_list_head, %ebx        #ebx <-- list head
 tasklet_loop:
-	cmpl	$0,%ebx			#if list head is null then we are done
-	je	tasklet_end
-
-	decw	COUNTDOWN(%ebx)		#decrement countdown
-	cmpl	$0,COUNTDOWN(%ebx)	#if countdown is not 0, to next struct
-	jg 	next_loop
+	        cmp $0, %ebx                    #if list head null then we're done
+	        je done
+	        xorl %esi, %esi
+	        xorl %ecx, %ecx
+	        xorl %eax, %eax
+	        movw 8(%ebx), %si              #esi <-- countdown
+	        decw %si                       #countdown --
+	        movw %si, 8(%ebx)
+	        cmpw $0, %si                   #if countdown not 0, move to next struct
+	        jne cont
+status_change:
+	            movw 10(%ebx), %si         # <-- status
+	            cmpw $0, %si                #if status = 0
+	            je switch_on                #status = 1
+switch_off:	                 #else status = 0
+	                movw $0, %si           #cl <-- off_char
+	                movb 3(%ebx), %cl
+	                movw 6(%ebx), %ax
+	                jmp get_loc
+switch_on:	                  #cl <-- on_char
+	                movw $1, %si
+	                movb 2(%ebx), %cl
+	                movw 4(%ebx), %ax
+get_loc:
+	                movw %ax, 8(%ebx)
+	                movw %si, 10(%ebx)
+	                movw 0(%ebx), %ax          #eax <-- location * 2
+	                shlw $1, %ax
+	                call mp1_poke               #poke
+cont:
+	         movl 12(%ebx), %esi
+	         movl %esi, %ebx
+	         jmp tasklet_loop
+done:
+	        popl %esi
+	        popl %edi
+	        popl %ebx
+	        leave
+	        ret
 	
-	
-	movzwl	LOCATION(%ebx),%eax	#blink location is now in eax
-	shl	$1,%eax
-
-	testw	$0x1,STATUS(%ebx)	#examine the status field
-	jz	currently_off		#if status is 0, then location has off_char character
-
-	movb	OFF_CHAR(%ebx),%cl
-	call 	mp1_poke
-	movw	OFF_LENGTH(%ebx),%dx
-	jmp	end_blink
-
-currently_off:
-	movb	ON_CHAR(%ebx), %cl	#cl<--on_char
-	call 	mp1_poke		#poke
-	movw	ON_LENGTH(%ebx), %dx	#dx<--on_length
-
-end_blink:
-	movw	%dx, COUNTDOWN(%edx)
-	xorw	$0x1, STATUS(%ebx)
-
-next_loop:
-	movl	NEXT(%ebx), %ebx
-	jmp	tasklet_loop
-
-tasklet_end:
-	popl	%ebx
-	popl	%edi
-	popl	%esi
-	
-	popl	%ebp
-	ret
-
 mp1_ioctl:
 	movl	8(%esp), %eax
 	cmpl 	$3,%eax			#eax<--cmd
@@ -211,7 +210,7 @@ restore:
 	        
 
  mp1_ioctl_remove:
-/* remove function done
+#remove function done
 		pushl   %ebp
 	        movl    %esp, %ebp
 
@@ -262,13 +261,13 @@ remove_leave:
 	        popl    %edi
 	        popl    %esi
 
-	        leave	*/
+	        leave	
 	        ret
 	        
 
         
 mp1_ioctl_find:
-	// find function done
+#find function done
 		pushl   %ebp
 	        movl    %esp, %ebp
 	        subl    $2,%esp
@@ -317,7 +316,7 @@ find_leave:
 	        leave		
 	        ret
 
-// find helper function to verify location done
+# find helper function to verify location done
 mp1_find_helper:
 	        pushl	%ebp
 	        movl	%esp, %ebp
