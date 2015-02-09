@@ -137,6 +137,11 @@ err:
 		movl $-1, %eax			#return -1
 		ret
 
+	#int mp1_ioctl_add(unsigned long arg)
+	#Interface:
+	#Inputs:
+	#Outputs:
+	#Registers:
 
 	
 mp1_ioctl_add:
@@ -233,9 +238,14 @@ restore:
 		leave
 		ret
 	
+	#int mp1_ioctl_remove (unsigned long arg)
+	#Interface:
+	#Inputs:
+	#Outputs:
+	#Registers:
 
 mp1_ioctl_remove:
-#remove function done
+
 		pushl   %ebp
 	        movl    %esp, %ebp
 
@@ -290,9 +300,14 @@ remove_leave:
 	        ret
 	        
 
-        
+	#int mp1_int_find(unsigned long arg)
+	#Interface:
+	#Inputs:
+	#Outputs:
+	#Registers:
+
 mp1_ioctl_find:
-#find function done
+
 		pushl   %ebp
 	        movl    %esp, %ebp
 	        subl    $2,%esp
@@ -373,7 +388,11 @@ helper_leave:
 	        ret
 	
 
-	
+	#int mp1_ioctl_sync(unsigned long arg)
+	#Interface:
+	#Inputs:
+	#Outputs:
+	#Registers:
 mp1_ioctl_sync:
 		pushl   %ebp
 	        movl    %esp, %ebp
