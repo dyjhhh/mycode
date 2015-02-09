@@ -15,6 +15,8 @@
         STRUCT_SIZE = 16
 
 # Pointer to head of list (initialized to NULL)
+
+
 mp1_list_head:
         .long   0
 call_table:
@@ -39,18 +41,30 @@ call_table:
 #   Outputs: Text-mode video screen is written to at location %eax with
 #            the byte in %cl
 # Registers: Clobbers EDX
+
 mp1_poke:
         
 	movl    vmem_base_addr(,1),%edx
 	movb    %cl,(%edx,%eax,1)
 	ret
-	
-	// Every time an RTC interruput is generated, ,mp1_rtc_tasklet will be
-	// called, tasklet will walk down mp1_list_head list, examing each
-	// mp1_blink_struct structure. The function first decrement the
-	// countdown. If the countdoen has reached 0 after the decrement,
-	// the tasklet will examine the status field.
 
+
+	#void mp1_rtc_tasklet(unsigned long)
+	#Interface:C-style
+	# examine each mp1_blink_struct in mp1_list_head
+	#        decrement countdown
+	#        if countdown = 0
+	#            examine status
+	#            call mp1_poke
+	#            update status
+	#            length = opposite length countdown
+	#        return
+	
+	#Inputs: %ebx - list head
+	#Outputs: function returns when reach the end of the list
+	#Registers:%ax - store on_length or off_length
+	#	%si - store status field and countdown filed
+	#	%cl - store on_char or off_char
 mp1_rtc_tasklet:
 
 init_tasklet:
@@ -61,39 +75,40 @@ init_tasklet:
 	        pushl %esi                      #callee-save esi
 	        movl mp1_list_head, %ebx        #ebx <-- list head
 tasklet_loop:
-	        cmp $0, %ebx                    #if list head null then we're done
+	        cmp $0, %ebx                    #and if list head null then we're done
 	        je done
-	        xorl %esi, %esi
-	        xorl %ecx, %ecx
-	        xorl %eax, %eax
-	        movw 8(%ebx), %si              #esi <-- countdown
-	        decw %si                       #countdown --
-	        movw %si, 8(%ebx)
-	        cmpw $0, %si                   #if countdown not 0, move to next struct
+	        xorl %esi, %esi			#clear esi
+	        xorl %ecx, %ecx			#clear ecx
+	        xorl %eax, %eax			#clear eax
+	        movw COUNTDOWN(%ebx), %si       #si <-- countdown
+	        decw %si                        #countdown --
+	        movw %si, COUNTDOWN(%ebx)
+	        cmpw $0, %si                    #so if countdown not 0, move to next struct
 	        jne cont
 status_change:
-	            movw 10(%ebx), %si         # <-- status
-	            cmpw $0, %si                #if status = 0
-	            je switch_on                #status = 1
-switch_off:	                 #else status = 0
-	                movw $0, %si           #cl <-- off_char
-	                movb 3(%ebx), %cl
-	                movw 6(%ebx), %ax
-	                jmp get_loc
-switch_on:	                  #cl <-- on_char
-	                movw $1, %si
-	                movb 2(%ebx), %cl
-	                movw 4(%ebx), %ax
+	        movw STATUS(%ebx), %si          #si <-- status
+	        cmpw $0, %si                    #and if status = 0
+	        je switch_on                    #status = 1
+	
+switch_off:				
+		movw $0, %si          		#make status = 0
+	        movb OFF_CHAR(%ebx), %cl	#cl <-- off_char
+	        movw OFF_LENGTH(%ebx), %ax	#ax <-- off_length
+	        jmp get_loc
+switch_on:	                  		#cl <-- on_char
+	        movw $1, %si
+	        movb ON_CHAR(%ebx), %cl
+	        movw ON_LENGTH(%ebx), %ax
 get_loc:
-	                movw %ax, 8(%ebx)
-	                movw %si, 10(%ebx)
-	                movw 0(%ebx), %ax          #eax <-- location * 2
-	                shlw $1, %ax
-	                call mp1_poke               #poke
+	        movw %ax, COUNTDOWN(%ebx)
+	        movw %si, STATUS(%ebx)
+	        movw 0(%ebx), %ax          	#eax <-- location * 2
+	        shlw $1, %ax
+	        call mp1_poke               	#poke
 cont:
-	         movl 12(%ebx), %esi
-	         movl %esi, %ebx
-	         jmp tasklet_loop
+	        movl NEXT(%ebx), %esi
+	        movl %esi, %ebx
+	        jmp tasklet_loop
 done:
 	        popl %esi
 	        popl %edi
