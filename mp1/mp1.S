@@ -138,10 +138,17 @@ err:
 		ret
 
 	#int mp1_ioctl_add(unsigned long arg)
-	#Interface:
-	#Inputs:
-	#Outputs:
-	#Registers:
+	#Interface: Takes a user-level pointer to a mp1_blink_struct strcuture
+	#	    Dynamically allocate memory to store a copy of structure.
+	#	    Copy the strcut, set countdown=on_length, set status to 1
+	#           Insert structure at the head of the linked list
+	#	    Call poke, display the character on the text-mode video screen	
+	#Inputs: %edi- argument (user level pointer to struct)
+	#Outputs:retrun -1 on error, return 0 on successful
+	#Registers:%edi - argument (user level pointer to instruct)
+	#	   %eax - newly allocated space
+	#	   %di - set countdown = on_length
+	#	   %cl - temporary register
 
 	
 mp1_ioctl_add:
@@ -165,30 +172,30 @@ malloc:
 		call mp1_malloc                     #allocate using local var as param
 		cmp $0, %eax                        #check if malloc returned null
 		je err_add
-		addl $4, %esp		             #reclaim space from local variable
+		addl $4, %esp		            #reclaim space from local variable
 
 #copy entire mp1_blink_struct from the user space strcuture to the newly allocated memory
 	
 translate:
 		subl $12, %esp                      #allocate space for 3 new variables
-		movl $STRUCT_SIZE, -16(%ebp)                 #put 16 in first variable (size)
+		movl $STRUCT_SIZE, -16(%ebp)        #put 16 in first variable (size)
 		movl %eax, -24(%ebp)                #newly malloced space is second variable (to)
 		movl %edi, -20(%ebp)                #arg is third variable (from)
 		movl %eax, %esi                     #esi <-- malloced memory
 		call mp1_copy_from_user             #copy data from user space
-		cmp $0, %eax                        #check if unable to write all bytes	       jne err_free_add
+		cmp $0, %eax                        #check if unable to write all bytes
+		jne err_free_add
 
 #set the countdown field to be equal to the on_length field
 #and set the status field to 1
 #then insert this structure at the head of the linked list
-#using the mp1_list_head pointer
 	
 update_data:
-		movw 4(%esi), %dx                   #edx <-- on_length
-		movw %dx, 8(%esi)                   #countdown <-- on_length
-		movb $1, 10(%esi)                   #status <-- 1
+		movw ON_LENGTH(%esi), %dx            
+		movw %dx, COUNTDOWN(%esi)           #countdown <-- on_length
+		movb $1, STATUS(%esi)               #status <-- 1
 		movl mp1_list_head, %edi            #edi <-- address of old head
-		movl %edi, 12(%esi)                 #next <-- address of old head
+		movl %edi, NEXT(%esi)               #next <-- address of old head
 		movl %esi, mp1_list_head            #head <-- address of malloced memory
 
 #make a call to mp1_poke with the correct register parameter to immediately
@@ -198,7 +205,7 @@ update_data:
 #check if the location is inside the range 0 to 80*25-1
 
 poke:
-		movw 0(%esi), %ax                  #eax <-- location
+		movw 0(%esi), %ax                   #ax <-- location
 		cmp $0, %eax                        #check if eax is < 0
 		jl err_free_add
 		xorl %edi, %edi
@@ -207,9 +214,9 @@ poke:
 		subl $49, %edi                      #check if eax > 1999
 		cmp %edi, %eax
 		jg err_free_add
-		shlw $1, %ax                       #eax *= 2
-		movb 2(%esi), %cl                    #cl <-- on_char
-		call mp1_poke                      #output char to screen
+		shlw $1, %ax                        #eax *= 2
+		movb ON_CHAR(%esi), %cl             #cl <-- on_char
+		call mp1_poke                       #output char to screen
 		jmp restore
 
 #the error handling prevent memory leaks
@@ -239,10 +246,14 @@ restore:
 		ret
 	
 	#int mp1_ioctl_remove (unsigned long arg)
-	#Interface:
-	#Inputs:
-	#Outputs:
-	#Registers:
+	#Interface: takes an integer location, traverse the mp1_list_head list
+	#	    look for correspponding function and remove it from the linked list
+	#	    free the memory, return -1 if no match
+	#Inputs:%esi - argument(location)
+	#Outputs:remove the element with matching location, return -1 if no match
+	#Registers:%edx - current next
+	#	  %eax - location of address
+	#`	  %ebx - address of head
 
 mp1_ioctl_remove:
 
@@ -301,8 +312,10 @@ remove_leave:
 	        
 
 	#int mp1_int_find(unsigned long arg)
-	#Interface:
-	#Inputs:
+	#Interface:Takes a pointer to a struct, extract the location
+	#	   search the mp1_list_head that matches the location
+	#	   then copy the entire element, if no match, return -1
+	#Inputs: %edi- argument (pointer to a struct)	
 	#Outputs:
 	#Registers:
 
@@ -328,7 +341,7 @@ mp1_ioctl_find:
 
 	        movzwl  -2(%ebp),%eax	
 	        pushl   %eax
-	        call    mp1_find_helper
+	        call    mp1_find_helper		#search the head that mateches the location
 	        addl    $4, %esp
 	        cmpl    $0, %eax
 	        je      find_fail_return
@@ -356,7 +369,7 @@ find_leave:
 	        leave		
 	        ret
 
-# find helper function to verify location done
+# find helper function to verify location
 mp1_find_helper:
 	        pushl	%ebp
 	        movl	%esp, %ebp
@@ -389,10 +402,13 @@ helper_leave:
 	
 
 	#int mp1_ioctl_sync(unsigned long arg)
-	#Interface:
-	#Inputs:
-	#Outputs:
-	#Registers:
+	#Interface: Takes in two arguments, sync two existing locations on ascreen
+	#	    First integer represent the location of the first blinking char
+	#	    and the second represents the location of the second blinking char
+	#	    that will become synced with tghe first
+	#Inputs: %eax - aruguments (two two-byte unsigned short integers)
+	#Outputs: return 0 on success -1 on fail
+	#Registers: %ax - used for copying timing information
 mp1_ioctl_sync:
 		pushl   %ebp
 	        movl    %esp, %ebp
@@ -402,10 +418,10 @@ mp1_ioctl_sync:
 	        pushl   %ebx
 
 sync_find_first:
-	        movl    8(%ebp), %eax
+	        movl    8(%ebp), %eax		# extract the two integers from the single argument
 	        shr     $16, %eax
 	        pushl   %eax
-	        call    mp1_find_helper
+	        call    mp1_find_helper		# search linked list, find match
 	        addl    $4, %esp
 	        cmpl    $0, %eax
 	        je      sync_fail_return
@@ -421,7 +437,7 @@ sync_find_first:
 	        movl    %eax, %edi
 
 sync_copy_loop:
-	        movw    ON_LENGTH(%esi), %ax
+	        movw    ON_LENGTH(%esi), %ax	#copy the timing information from the first element to second
 	        movw    %ax, ON_LENGTH(%edi)
 	        movw    OFF_LENGTH(%esi), %ax
 	        movw    %ax, OFF_LENGTH(%edi)
@@ -438,11 +454,11 @@ sync_copy_loop:
 	        cmovl   %ebx, %ecx
 
 sync_display:
-	        call    mp1_poke
+	        call    mp1_poke		#update the display
 	        jmp     sync_success_return
 
 sync_fail_return:
-	        movl    $-1,%eax
+	        movl    $-1,%eax		#return -1 on fail
 	        jmp     sync_leave
 
 sync_success_return:
