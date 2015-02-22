@@ -562,3 +562,61 @@ unsigned char font_data[256][16] = {
      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 };
 
+void
+text_convert (const char* text, unsigned char* buf, unsigned char f_color,
+	      unsigned char b_color)
+{
+  int i;//index of character in string
+  int j;//index of row in character
+  int k;//index of bit in row
+  int m;//index in buffer for filling it with b_color
+  int length; //length of string input
+  int p_off;//plane offset
+  int start;//starting index used to center text
+  unsigned char target;//temporary holder for target font_data
+  int location;//index of location to write to
+  
+  /* init p_off to 0 */
+  p_off = 0;
+  
+  /* fill buffer with b_color */
+  for (m = 0; m < 5760; m++)
+    {
+      buf[m] = b_color;
+    }
+  
+  /* count characters in string */
+  length = strlen(text);
+  
+  /* calculate starting address - centers text */
+  start = (40 - length);
+  
+  /* convert text to image */
+  for (i = 0; i < length; i++)
+    {
+      for (j = 0; j < 16; j++)
+	{
+	  /* grab data from font_data */
+	  target = font_data[(int)text[i]][j];
+	  
+	  for (k = 0; k < 8; k++)
+	    {
+	      /* calculate location */
+	      location = start + (i * 2) + ((j + 2) * 80) + (2 - (k/4)) + ((3 - p_off) * 1440);
+	      
+	      /* examine bit to see which color to write */
+	      if ((target % 2) == 0)
+		buf[location] = b_color;
+	      else
+		buf[location] = f_color;
+	      
+	      /* shift target bits */
+	      target = target >> 1;
+	      
+	      /* increment p_off */
+	      p_off++;
+	      if (p_off == 4) p_off = 0;
+	    }
+	}
+    }
+}
