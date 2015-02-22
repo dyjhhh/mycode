@@ -59,6 +59,11 @@
 #define LEFT 68
 
 
+/*added these */
+#include <sys/stat.h>
+#include <termio.h>
+#include "module/tuxctl-ioctl.h"
+
 /*
  * If NDEBUG is not defined, we execute sanity checks to make sure that
  * changes to enumerations, bit maps, etc., have been made consistently.
@@ -76,7 +81,7 @@ static int sanity_check ();
 
 /* outcome of each level, and of the game as a whole */
 typedef enum {GAME_WON, GAME_LOST, GAME_QUIT} game_condition_t;
-
+int fe; // global file variable for tux communication
 
 /* structure used to hold game information */
 typedef struct {
@@ -104,7 +109,6 @@ static void move_left (int* xpos);
 static int unveil_around_player (int play_x, int play_y);
 static void *rtc_thread(void *arg);
 static void *keyboard_thread(void *arg);
-
 
 /* 
  * prepare_maze_level
@@ -432,16 +436,46 @@ static int total = 0;
  */
 static void *rtc_thread(void *arg)
 {
-	int ticks = 0;
-	int level;
-	int ret;
-	int open[NUM_DIRS];
-	int need_redraw = 0;
-	int goto_next_level = 0;
 
+  int ticks = 0;
+  int level;
+  int ret;
+  int open[NUM_DIRS];
+  int need_redraw = 0;
+  int goto_next_level = 0;
+  unsigned char status_bar_buffer[6000];
+  unsigned char background_buffer[12][12];
+  
+  /* wall fill / status background colors for individual levels */
+  unsigned char wall_fill_colors[10][3] = {
+    {0xFF, 0x00, 0x00}, {0x00, 0xFF, 0x00},
+    {0x00, 0x00, 0xFF}, {0xFF, 0x00, 0xFF},
+    {0x00, 0xFF, 0xFF}, {0xFF, 0xFF, 0x00},
+    {0x99, 0x77, 0xFF}, {0x66, 0xFF, 0x99},
+    {0x99, 0x00, 0x33}, {0x33, 0x00, 0xCC}};
+  
+  /* wall outline / status text colors for individual levels */
+  unsigned char wall_outline_colors[10][3] = {
+    {0xFF, 0xFF, 0xFF}, {0xD4, 0xD4, 0xD4},
+    {0xFF, 0xFF, 0xFF}, {0xD4, 0xD4, 0xD4},
+    {0xFF, 0xFF, 0xFF}, {0xD4, 0xD4, 0xD4},
+    {0xFF, 0xFF, 0xFF}, {0xD4, 0xD4, 0xD4},
+    {0xFF, 0xFF, 0xFF}, {0xD4, 0xD4, 0xD4}};
+  
+  /* timer variables */
+  int minutes;
+  int seconds;
+  int oldminutes;
+  int oldseconds;
 	// Loop over levels until a level is lost or quit.
 	for (level = 1; (level <= MAX_LEVEL) && (quit_flag == 0); level++)
 	{
+	  // Update palette with correct wall and status bar colors for the level
+	  set_palette_color(WALL_FILL_COLOR, wall_fill_colors[level-1][0], wall_fill_colors[level-1][1],
+			    wall_fill_colors[level-1][2]);
+	  set_palette_color(WALL_OUTLINE_COLOR, wall_outline_colors[level-1][0], wall_outline_colors[level-1][1],
+			    wall_outline_colors[level-1][2]);
+
 		// Prepare for the level.  If we fail, just let the player win.
 		if (prepare_maze_level (level) != 0)
 			break;
@@ -464,18 +498,14 @@ static void *rtc_thread(void *arg)
 
 		// Show maze around the player's original position
 		(void)unveil_around_player (play_x, play_y);
-
-		draw_full_block (play_x, play_y, get_player_block(last_dir));
-		show_screen();
-
+		update_background_buffer(play_x, play_y, background_buffer);
+		draw_player_block (play_x, play_y, get_player_block(last_dir), get_player_mask(last_dir));
+		show_screen(status_bar_buffer);
+		draw_full_block(play_x, play_y, *background_buffer);
+		
 		// get first Periodic Interrupt
 		ret = read(fd, &data, sizeof(unsigned long));
 
-		while ((quit_flag == 0) && (goto_next_level == 0))
-		{
-			// Wait for Periodic Interrupt
-			ret = read(fd, &data, sizeof(unsigned long));
-		
 			// Update tick to keep track of time.  If we missed some
 			// interrupts we want to update the player multiple times so
 			// that player velocity is smooth
@@ -586,10 +616,21 @@ static void *rtc_thread(void *arg)
 					need_redraw = 1;
 				}
 			}
-			if (need_redraw) show_screen();	
+			if (need_redraw) 
+			  {
+			    update_background_buffer(play_x, play_y, background_buffer);
+			    draw_player_block (play_x, play_y, get_player_block(last_dir), get_player_mask(last_dir));
+			    if ((minutes != oldminutes) || (seconds != oldseconds))
+			      {
+				oldminutes = minutes;
+				oldseconds = seconds;
+			      }
+			    show_screen(status_bar_buffer);
+			    draw_full_block(play_x, play_y, *background_buffer);
+			  }
 			need_redraw = 0;
 		}	
-	}
+       
 	if (quit_flag == 0) winner = 1;
 	return 0;
 }
