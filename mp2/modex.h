@@ -132,6 +132,12 @@ extern void clear_screens ();
  * is clipped (cut off and not drawn)
  */
 extern void draw_full_block (int pos_x, int pos_y, unsigned char* blk);
+/*
+ * Draw a player in logical window using the player mask */
+extern void draw_player_block (int pos_x, int pos_y, unsigned char* blk,
+			       unsigned char* mask);
+
+extern void update_background_buffer (int pos_x, int pos_y, unsigned char buf[12][12]);
 
 /* draw a horizontal line at vertical pixel y within the logical view window */
 extern int draw_horiz_line (int y);
@@ -139,4 +145,6 @@ extern int draw_horiz_line (int y);
 /* draw a vertical line at horizontal pixel x within the logical view window */
 extern int draw_vert_line (int x);
 
+/* change a palette color */
+extern void set_palette_color(unsigned char pal_col, unsigned char r_comp, unsigned char g_comp,unsigned char b_comp);
 #endif /* MODEX_H */
