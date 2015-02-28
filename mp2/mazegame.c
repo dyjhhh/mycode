@@ -521,7 +521,7 @@ static void *rtc_thread(void *arg)
 		// get first Periodic Interrupt
 		ret = read(fd, &data, sizeof(unsigned long));
 		while ((quit_flag == 0) && (goto_next_level == 0))		  
-		  {
+	    {
 		    // Wait for Periodic Interrupt
 
 		  ret = read(fd, &data, sizeof(unsigned long));
@@ -669,11 +669,11 @@ static void *rtc_thread(void *arg)
 			  }
 			need_redraw = 0;
 		}	
-       
+	}
 	if (quit_flag == 0) winner = 1;
 	return 0;
-}
 
+}
 static void
   update_status(unsigned char* status_bar_buffer, unsigned int level,
 		unsigned int seconds, unsigned int minutes)
