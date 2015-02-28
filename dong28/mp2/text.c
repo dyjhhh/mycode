@@ -566,15 +566,15 @@ void
 text_convert (const char* text, unsigned char* buf, unsigned char f_color,
 	      unsigned char b_color)
 {
-  int i;//index of character in string
-  int j;//index of row in character
-  int k;//index of bit in row
-  int m;//index in buffer for filling it with b_color
-  int length; //length of string input
-  int p_off;//plane offset
-  int start;//starting index used to center text
+  int i;              //index of character in string
+  int j;              //index of row in character
+  int k;              //index of bit in row
+  int m;              //index in buffer for filling it with b_color
+  int length;         //length of string input
+  int p_off;          //plane offset
+  int start;          //starting index used to center text
   unsigned char target;//temporary holder for target font_data
-  int location;//index of location to write to
+  int location;        //index of location to write to
   
   /* init p_off to 0 */
   p_off = 0;
