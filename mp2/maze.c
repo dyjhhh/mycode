@@ -52,7 +52,7 @@
 
 
 /* Set to 1 to remove all walls as a debugging aid. (Nate Taylor, S07). */
-#define GOD_MODE 0
+#define GOD_MODE 1
 
 
 /* local functions--see function headers for details */
@@ -911,3 +911,7 @@ main ()
 
 #endif /* TEST_MAZE_GEN */
 
+extern int num_fruit()
+{
+  return n_fruits;
+}
