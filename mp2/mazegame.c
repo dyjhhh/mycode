@@ -520,9 +520,10 @@ static void *rtc_thread(void *arg)
 		
 		// get first Periodic Interrupt
 		ret = read(fd, &data, sizeof(unsigned long));
-		while ((quit_flag == 0) && (goto_next_level == 0))		  {// Wait for Periodic Interrupt
+		while ((quit_flag == 0) && (goto_next_level == 0))		  
+		  {
+		    // Wait for Periodic Interrupt
 
-		  // Wait for Periodic Interrupt
 		  ret = read(fd, &data, sizeof(unsigned long));
 		  /* Update seconds every 32 interrupts */
 		  if (rtc_div < 32)
@@ -672,6 +673,7 @@ static void *rtc_thread(void *arg)
 	if (quit_flag == 0) winner = 1;
 	return 0;
 }
+
 static void
   update_status(unsigned char* status_bar_buffer, unsigned int level,
 		unsigned int seconds, unsigned int minutes)
