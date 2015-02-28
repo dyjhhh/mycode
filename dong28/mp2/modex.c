@@ -349,7 +349,7 @@ clear_mode_X ()
     int i;   /* loop index for checking memory fence */
     
     /* Put VGA into text mode, restore font data, and clear screens. */
-y    set_text_mode_3 (1);
+    set_text_mode_3 (1);
 
     /* Unmap video memory. */
     (void)munmap (mem_image, VID_MEM_SIZE);
