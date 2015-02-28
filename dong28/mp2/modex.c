@@ -725,11 +725,14 @@ update_background_buffer (int pos_x, int pos_y, unsigned char buf[12][12])
   /* Clip any pixels falling off the left side of screen. */
   if ((x_left = show_x - pos_x) < 0)
     x_left = 0;
+
   /* Clip any pixels falling off the right side of screen. */
   if ((x_right = show_x + SCROLL_X_DIM - pos_x) > BLOCK_X_DIM)
     x_right = BLOCK_X_DIM;
+
   /* Skip the first x_left pixels in both screen position and block data. */
   pos_x += x_left;
+
   /* 
    * Adjust x_right to hold the number of pixels to be drawn, and x_left
    * to hold the amount to skip between rows in the block, which is the
@@ -742,9 +745,11 @@ update_background_buffer (int pos_x, int pos_y, unsigned char buf[12][12])
   /* Clip any pixels falling off the top of the screen. */
   if ((y_top = show_y - pos_y) < 0)
     y_top = 0;
+
   /* Clip any pixels falling off the bottom of the screen. */
   if ((y_bottom = show_y + SCROLL_Y_DIM - pos_y) > BLOCK_Y_DIM)
     y_bottom = BLOCK_Y_DIM;
+
   /* 
    * Skip the first y_left pixel in screen position and the first
    * y_left rows of pixels in the block data.
@@ -761,6 +766,7 @@ update_background_buffer (int pos_x, int pos_y, unsigned char buf[12][12])
 
   }
 }
+
 /* 
  * The functions inside the preprocessor block below rely on functions
  * in maze.c to generate graphical images of the maze.  These functions
@@ -783,6 +789,12 @@ update_background_buffer (int pos_x, int pos_y, unsigned char buf[12][12])
  *   RETURN VALUE: Returns 0 on success.  If x is outside of the valid 
  *                 SCROLL range, the function returns -1.  
  *   SIDE EFFECTS: draws into the build buffer
+ *
+ *
+ * NEW FUNCTION WRITTEN
+ *
+ *
+ *
  */   
 int
 draw_vert_line (int x)
@@ -1087,7 +1099,19 @@ fill_palette ()
     /* Write all 64 colors from array. */
     REP_OUTSB (0x03C9, palette_RGB, 64 * 3);
 }
-
+/*
+ *
+ *
+ * NEW FUNCTION ADDED
+ *
+ *
+ * set_palette_color:
+    DESCRIPTION:
+    INPUTS:
+    OUTPPUTS: none
+    RETURN VALUE:
+    SIDE EFFECTS:
+*/
 void
 set_palette_color(unsigned char pal_col, unsigned char r_comp, unsigned char g_comp,
 		  unsigned char b_comp)
