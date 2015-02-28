@@ -302,7 +302,7 @@ set_mode_X (void (*horiz_fill_fn) (int, int, unsigned char[SCROLL_X_DIM]),
 
     /* One display page goes at the start of video memory. */
     /* modified 0x0000 to 6000 */
-    target_img = 6000; 
+    target_img = 0X6000; 
 
     /* Map video memory and obtain permission for VGA port access. */
     if (open_memory_and_ports () == -1)
