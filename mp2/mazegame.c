@@ -111,6 +111,7 @@ static void *rtc_thread(void *arg);
 static void *keyboard_thread(void *arg);
 static void update_status(unsigned char* status_bar_buffer, unsigned int level,
 			  unsigned int seconds, unsigned int minutes);
+static void color_fader();
 
 /* 
  * prepare_maze_level
@@ -525,6 +526,7 @@ static void *rtc_thread(void *arg)
 		    // Wait for Periodic Interrupt
 
 		  ret = read(fd, &data, sizeof(unsigned long));
+		  color_fader();
 		  /* Update seconds every 32 interrupts */
 		  if (rtc_div < 32)
 		    rtc_div++;
@@ -673,6 +675,74 @@ static void *rtc_thread(void *arg)
 	if (quit_flag == 0) winner = 1;
 	return 0;
 
+}
+static void
+color_fader()
+{
+  static int comp = 0;
+  static int dir = 0;
+  static unsigned char r_comp = 0x00;
+  static unsigned char g_comp = 0x00;
+  static unsigned char b_comp = 0x00;
+  
+  switch(comp)
+    {
+    case 0:
+      if (dir == 0)
+	{
+	  if (r_comp < 0x3F)
+	    r_comp++;
+	  else
+	    comp++;
+	}
+      else
+	{
+	  if (r_comp > 0x00)
+	    r_comp--;
+	  else
+	    comp++;
+	}
+      break;
+    case 1:
+      if (dir == 0)
+	{
+	  if (g_comp < 0x3F)
+	    g_comp++;
+	  else
+	    comp++;
+	}
+      else
+	{
+	  if (g_comp > 0x00)
+	    g_comp--;
+	  else
+	    comp++;
+	}
+      break;
+    case 2:
+      if (dir == 0)
+	{
+	  if (b_comp < 0x3F)
+	    b_comp++;
+	  else
+	    {
+	      comp = 0;
+	      dir = 1;
+	    }
+	}
+      else
+	{
+	  if (b_comp > 0x00)
+	    b_comp--;
+	  else
+	    {
+	      comp = 0;
+	      dir = 0;
+	    }
+	}
+      break;
+    }
+  set_palette_color(PLAYER_CENTER_COLOR, r_comp, g_comp, b_comp);
 }
 static void
   update_status(unsigned char* status_bar_buffer, unsigned int level,
