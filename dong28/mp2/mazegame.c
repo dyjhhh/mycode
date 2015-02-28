@@ -81,7 +81,7 @@ static int sanity_check ();
 
 /* outcome of each level, and of the game as a whole */
 typedef enum {GAME_WON, GAME_LOST, GAME_QUIT} game_condition_t;
-int fe; // global file variable for tux communication
+//int fe;  global file variable for tux communication
 
 /* structure used to hold game information */
 typedef struct {
@@ -109,6 +109,8 @@ static void move_left (int* xpos);
 static int unveil_around_player (int play_x, int play_y);
 static void *rtc_thread(void *arg);
 static void *keyboard_thread(void *arg);
+static void update_status(unsigned char* status_bar_buffer, unsigned int level,
+			  unsigned int seconds, unsigned int minutes);
 
 /* 
  * prepare_maze_level
@@ -443,10 +445,10 @@ static void *rtc_thread(void *arg)
   int open[NUM_DIRS];
   int need_redraw = 0;
   int goto_next_level = 0;
-  unsigned char status_bar_buffer[6000];
-  unsigned char background_buffer[12][12];
+  unsigned char status_bar_buffer[6000]; //add this
+  unsigned char background_buffer[12][12]; //add this
   
-  /* wall fill / status background colors for individual levels */
+  /* added wall fill / status background colors for individual levels */
   unsigned char wall_fill_colors[10][3] = {
     {0xFF, 0x00, 0x00}, {0x00, 0xFF, 0x00},
     {0x00, 0x00, 0xFF}, {0xFF, 0x00, 0xFF},
@@ -454,7 +456,7 @@ static void *rtc_thread(void *arg)
     {0x99, 0x77, 0xFF}, {0x66, 0xFF, 0x99},
     {0x99, 0x00, 0x33}, {0x33, 0x00, 0xCC}};
   
-  /* wall outline / status text colors for individual levels */
+  /* added wall outline / status text colors for individual levels */
   unsigned char wall_outline_colors[10][3] = {
     {0xFF, 0xFF, 0xFF}, {0xD4, 0xD4, 0xD4},
     {0xFF, 0xFF, 0xFF}, {0xD4, 0xD4, 0xD4},
@@ -462,15 +464,17 @@ static void *rtc_thread(void *arg)
     {0xFF, 0xFF, 0xFF}, {0xD4, 0xD4, 0xD4},
     {0xFF, 0xFF, 0xFF}, {0xD4, 0xD4, 0xD4}};
   
-  /* timer variables */
+  /* added timer variables */
+  int rtc_div;
   int minutes;
   int seconds;
   int oldminutes;
   int oldseconds;
+
 	// Loop over levels until a level is lost or quit.
 	for (level = 1; (level <= MAX_LEVEL) && (quit_flag == 0); level++)
 	{
-	  // Update palette with correct wall and status bar colors for the level
+	  //added  Update palette with correct wall and status bar colors for the level
 	  set_palette_color(WALL_FILL_COLOR, wall_fill_colors[level-1][0], wall_fill_colors[level-1][1],
 			    wall_fill_colors[level-1][2]);
 	  set_palette_color(WALL_OUTLINE_COLOR, wall_outline_colors[level-1][0], wall_outline_colors[level-1][1],
@@ -495,17 +499,48 @@ static void *rtc_thread(void *arg)
 		// Initialize the current direction of motion to stopped
 		dir = DIR_STOP;
 		next_dir = DIR_STOP;
+		
+		//Setup Status Bar
+		//initialize timer
+		seconds = 0;
+		minutes = 0;
+		oldminutes = -1;
+		oldseconds = -1;
+		rtc_div = 0;
+		update_status(status_bar_buffer, level, seconds,
+			      minutes);
 
 		// Show maze around the player's original position
 		(void)unveil_around_player (play_x, play_y);
-		update_background_buffer(play_x, play_y, background_buffer);
-		draw_player_block (play_x, play_y, get_player_block(last_dir), get_player_mask(last_dir));
-		show_screen(status_bar_buffer);
+
+		update_background_buffer(play_x, play_y, background_buffer); //added
+		draw_player_block (play_x, play_y, get_player_block(last_dir), get_player_mask(last_dir));//added
+		show_screen(status_bar_buffer);//added
 		draw_full_block(play_x, play_y, *background_buffer);
 		
 		// get first Periodic Interrupt
 		ret = read(fd, &data, sizeof(unsigned long));
+		while ((quit_flag == 0) && (goto_next_level == 0))		  {// Wait for Periodic Interrupt
 
+		  // Wait for Periodic Interrupt
+		  ret = read(fd, &data, sizeof(unsigned long));
+		  /* Update seconds every 32 interrupts */
+		  if (rtc_div < 32)
+		    rtc_div++;
+		  else
+		    {
+		      rtc_div = 0;
+		      seconds++;
+		      need_redraw = 1;
+		    }
+		  
+		  /* Update minutes every 60 seconds */
+		  if (seconds == 60)
+		    {
+		      seconds = 0;
+		      minutes++;
+		      need_redraw = 1;
+		    }
 			// Update tick to keep track of time.  If we missed some
 			// interrupts we want to update the player multiple times so
 			// that player velocity is smooth
@@ -547,6 +582,8 @@ static void *rtc_thread(void *arg)
 						dir = next_dir;
 					}
 				}
+
+			       
 				// New Maze Square!
 				if (move_cnt == 0) 
 				{
@@ -612,12 +649,13 @@ static void *rtc_thread(void *arg)
 						move_left (&play_x);  
 						break;
 		   			}
-					draw_full_block (play_x, play_y, get_player_block(last_dir));	
+					//draw_full_block (play_x, play_y, get_player_block(last_dir));	
 					need_redraw = 1;
 				}
 			}
 			if (need_redraw) 
 			  {
+			    //added
 			    update_background_buffer(play_x, play_y, background_buffer);
 			    draw_player_block (play_x, play_y, get_player_block(last_dir), get_player_mask(last_dir));
 			    if ((minutes != oldminutes) || (seconds != oldseconds))
@@ -633,6 +671,42 @@ static void *rtc_thread(void *arg)
        
 	if (quit_flag == 0) winner = 1;
 	return 0;
+}
+static void
+  update_status(unsigned char* status_bar_buffer, unsigned int level,
+		unsigned int seconds, unsigned int minutes)
+{
+  char status_text[40]; //text to be displayed
+  char var_string[3];//used to concactenate fruits and levels
+  int k;//used to clear status_text
+  int fruit = num_fruit();
+  
+  /* clear status_text */
+  for (k = 0; k < 40; k++)
+    {
+      status_text[k] = 0;
+    }
+  
+  /* Concactenate string */
+  strcat(status_text, "Level ");
+  sprintf(var_string, "%d", level);
+  strcat(status_text, var_string);
+  strcat(status_text, "  ");
+  sprintf(var_string, "%d", fruit);
+  strncat(status_text, var_string, 2);
+  if (num_fruit() == 1)
+    strcat(status_text, " Fruit");
+  else
+    strcat(status_text, " Fruits");
+  strcat(status_text, "  ");
+  sprintf(var_string, "%02d", minutes);
+  strncat(status_text, var_string, 2);
+  strcat(status_text, ":");
+  sprintf(var_string, "%02d", seconds);
+  strncat(status_text, var_string, 2);
+  
+  /* Convert string to image */
+  text_convert(status_text, status_bar_buffer, WALL_OUTLINE_COLOR, WALL_FILL_COLOR);
 }
 
 /*
@@ -651,6 +725,7 @@ int main()
 
 	pthread_t tid1;
 	pthread_t tid2;
+       
 
 	// Initialize RTC
 	fd = open("/dev/rtc", O_RDONLY, 0);
