@@ -51,6 +51,7 @@
 #include <sys/io.h>
 #include <termios.h>
 #include <pthread.h>
+#include <string.h>
 
 #define BACKQUOTE 96
 #define UP 65
@@ -661,6 +662,7 @@ static void *rtc_thread(void *arg)
 			    //added
 			    update_background_buffer(play_x, play_y, background_buffer);
 			    draw_player_block (play_x, play_y, get_player_block(last_dir), get_player_mask(last_dir));
+			    update_status(status_bar_buffer, level, seconds, minutes);
 			    if ((minutes != oldminutes) || (seconds != oldseconds))
 			      {
 				oldminutes = minutes;
