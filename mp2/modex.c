@@ -87,7 +87,7 @@ static unsigned short mode_X_CRTC[NUM_CRTC_REGS] = {
     0x5F00, 0x4F01, 0x5002, 0x8203, 0x5404, 0x8005, 0xBF06, 0x1F07,
     0x0008, 0x4109, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E, 0x000F,
     0x9C10, 0x8E11, 0x8F12, 0x2813, 0x0014, 0x9615, 0xB916, 0xE317,
-    0xFF18
+    0x6B18
 };
 static unsigned char mode_X_attr[NUM_ATTR_REGS * 2] = {
     0x00, 0x00, 0x01, 0x01, 0x02, 0x02, 0x03, 0x03, 
@@ -301,7 +301,8 @@ set_mode_X (void (*horiz_fill_fn) (int, int, unsigned char[SCROLL_X_DIM]),
     }
 
     /* One display page goes at the start of video memory. */
-    target_img = 0x0000; 
+    /* modified 0x0000 to 6000 */
+    target_img = 6000; 
 
     /* Map video memory and obtain permission for VGA port access. */
     if (open_memory_and_ports () == -1)
@@ -493,7 +494,7 @@ set_view_window (int scr_x, int scr_y)
  *                 shifts the VGA display source to point to the new image
  */   
 void
-show_screen ()
+show_screen (unsigned char* buf)
 {
     unsigned char* addr;  /* source address for copy             */
     int p_off;            /* plane offset of first display plane */
@@ -514,6 +515,8 @@ show_screen ()
     /* Draw to each plane in the video memory. */
     for (i = 0; i < 4; i++) {
 	SET_WRITE_MASK (1 << (i + 8));
+	/* added this line */
+	memcpy(mem_image, buf + (i*1440), 1440);
 	copy_image (addr + ((p_off - i + 4) & 3) * SCROLL_SIZE + (p_off < i), 
 	            target_img);
     }
@@ -1156,6 +1159,8 @@ write_font_data ()
     }
 
     /* Prepare VGA for text mode. */
+   
+
     OUTW (0x3C4, 0x0302);
     OUTW (0x3C4, 0x0304);
     OUTW (0x3CE, 0x1005);
