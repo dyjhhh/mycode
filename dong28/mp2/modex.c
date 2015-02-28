@@ -348,7 +348,7 @@ clear_mode_X ()
     int i;   /* loop index for checking memory fence */
     
     /* Put VGA into text mode, restore font data, and clear screens. */
-    set_text_mode_3 (1);
+y    set_text_mode_3 (1);
 
     /* Unmap video memory. */
     (void)munmap (mem_image, VID_MEM_SIZE);
@@ -614,6 +614,12 @@ draw_full_block (int pos_x, int pos_y, unsigned char* blk)
 }
 
 /*
+ *
+ *
+ * NEW FUNCTION ADDED
+ *
+ *
+ *
  * draw_player_block
  *   DESCRIPTION: Draw a player at absolute coordinates.  Mask the background
  with the player block using the player mask.
@@ -639,12 +645,15 @@ draw_player_block (int pos_x, int pos_y, unsigned char* blk, unsigned char* mask
   /* Clip any pixels falling off the left side of screen. */
   if ((x_left = show_x - pos_x) < 0)
     x_left = 0;
+
   /* Clip any pixels falling off the right side of screen. */
   if ((x_right = show_x + SCROLL_X_DIM - pos_x) > BLOCK_X_DIM)
     x_right = BLOCK_X_DIM;
+
   /* Skip the first x_left pixels in both screen position and block data. */
   pos_x += x_left;
   blk += x_left;
+
   /* 
    * Adjust x_right to hold the number of pixels to be drawn, and x_left
    * to hold the amount to skip between rows in the block, which is the
@@ -657,15 +666,18 @@ draw_player_block (int pos_x, int pos_y, unsigned char* blk, unsigned char* mask
   /* Clip any pixels falling off the top of the screen. */
   if ((y_top = show_y - pos_y) < 0)
     y_top = 0;
+
   /* Clip any pixels falling off the bottom of the screen. */
   if ((y_bottom = show_y + SCROLL_Y_DIM - pos_y) > BLOCK_Y_DIM)
     y_bottom = BLOCK_Y_DIM;
+
   /* 
    * Skip the first y_left pixel in screen position and the first
    * y_left rows of pixels in the block data.
    */
   pos_y += y_top;
   blk += y_top * BLOCK_X_DIM;
+
   /* Adjust y_bottom to hold the number of pixel rows to be drawn. */
   y_bottom -= y_top;
 
@@ -683,6 +695,11 @@ draw_player_block (int pos_x, int pos_y, unsigned char* blk, unsigned char* mask
 }
 
 /*
+ *
+ * NEW FUNCTION ADDED
+ *
+ *
+ *
  * update_background_buffer
  *   DESCRIPTION: Draw a player at absolute coordinates.  Mask the background
  with the player block using the player mask.
