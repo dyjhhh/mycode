@@ -85,7 +85,7 @@ static unsigned short mode_X_seq[NUM_SEQUENCER_REGS] = {
 };
 static unsigned short mode_X_CRTC[NUM_CRTC_REGS] = {
     0x5F00, 0x4F01, 0x5002, 0x8203, 0x5404, 0x8005, 0xBF06, 0x1F07,
-    0x0008, 0x4109, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E, 0x000F,
+    0x0008, 0x0109, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E, 0x000F,
     0x9C10, 0x8E11, 0x8F12, 0x2813, 0x0014, 0x9615, 0xB916, 0xE317,
     0x6B18
 };
@@ -137,9 +137,7 @@ static void set_graphics_registers (unsigned short table[NUM_GRAPHICS_REGS]);
 static void write_font_data ();
 static void set_text_mode_3 (int clear_scr);
 static void copy_image (unsigned char* img, unsigned short scr_addr);
-static void copy_status (unsigned char* img, unsigned short scr_addr);
-static void fill_palette_mode_x ();
-static void fill_palette_text ();
+static void fill_palette();
 
 /* 
  * Images are built in this buffer, then copied to the video memory.
@@ -326,8 +324,7 @@ set_mode_X (void (*horiz_fill_fn) (int, int, unsigned char[SCROLL_X_DIM]),
     set_CRTC_registers (mode_X_CRTC);            /* CRT control registers */
     set_attr_registers (mode_X_attr);            /* attribute registers   */
     set_graphics_registers (mode_X_graphics);    /* graphics registers    */
-    fill_palette_mode_x ();				 /* palette colors        */
-    fill_palette_text ();    
+    fill_palette();				 /* palette colors        */    
  clear_screens ();				 /* zero video memory     */
     VGA_blank (0);			         /* unblank the screen    */
 
@@ -1061,7 +1058,7 @@ set_graphics_registers (unsigned short table[NUM_GRAPHICS_REGS])
  *   SIDE EFFECTS: changes the first 64 palette colors
  */   
 static void
-fill_palette_mode_x ()
+fill_palette ()
 {
     /* 6-bit RGB (red, green, blue) values for first 64 colors */
     static unsigned char palette_RGB[64][3] = {
@@ -1132,35 +1129,6 @@ set_palette_color(unsigned char pal_col, unsigned char r_comp, unsigned char g_c
 }
 
 
-static void
-fill_palette_text ()
-{
-  /* 6-bit RGB (red, green, blue) values VGA colors and grey scale */
-  static unsigned char palette_RGB[32][3] = {
-    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x2A},   /* palette 0x00 - 0x0F    */
-    {0x00, 0x2A, 0x00}, {0x00, 0x2A, 0x2A},   /* basic VGA colors       */
-    {0x2A, 0x00, 0x00}, {0x2A, 0x00, 0x2A},
-    {0x2A, 0x15, 0x00}, {0x2A, 0x2A, 0x2A},
-    {0x15, 0x15, 0x15}, {0x15, 0x15, 0x3F},
-    {0x15, 0x3F, 0x15}, {0x15, 0x3F, 0x3F},
-    {0x3F, 0x15, 0x15}, {0x3F, 0x15, 0x3F},
-    {0x3F, 0x3F, 0x15}, {0x3F, 0x3F, 0x3F},
-    {0x00, 0x00, 0x00}, {0x05, 0x05, 0x05},   /* palette 0x10 - 0x1F    */
-    {0x08, 0x08, 0x08}, {0x0B, 0x0B, 0x0B},   /* VGA grey scale         */
-    {0x0E, 0x0E, 0x0E}, {0x11, 0x11, 0x11},
-    {0x14, 0x14, 0x14}, {0x18, 0x18, 0x18},
-    {0x1C, 0x1C, 0x1C}, {0x20, 0x20, 0x20},
-    {0x24, 0x24, 0x24}, {0x28, 0x28, 0x28},
-    {0x2D, 0x2D, 0x2D}, {0x32, 0x32, 0x32},
-    {0x38, 0x38, 0x38}, {0x3F, 0x3F, 0x3F}
-  };
- 
-  /* Start writing at color 0. */
-  OUTB (0x03C8, 0x00);
- 
-  /* Write all 32 colors from array. */
-  REP_OUTSB (0x03C9, palette_RGB, 32 * 3);
-}
  
 /*
  * write_font_data
@@ -1227,8 +1195,7 @@ set_text_mode_3 (int clear_scr)
     set_CRTC_registers (text_CRTC);              /* CRT control registers   */
     set_attr_registers (text_attr);              /* attribute registers     */
     set_graphics_registers (text_graphics);      /* graphics registers      */
-    fill_palette_mode_x ();				 /* palette colors          */
-    fill_palette_text ();    
+    fill_palette();				 /* palette colors          */
 if (clear_scr) {				 /* clear screens if needed */
 	txt_scr = (unsigned long*)(mem_image + 0x18000); 
 	for (i = 0; i < 8192; i++)
@@ -1267,33 +1234,6 @@ copy_image (unsigned char* img, unsigned short scr_addr)
     );
 }
 
-/*
- * copy_status
- *   DESCRIPTION: Copy one plane of a screen from the build buffer to the
- *                video memory.
- *   INPUTS: img -- a pointer to a single screen plane in the build buffer
- *           scr_addr -- the destination offset in video memory
- *   OUTPUTS: none
- *   RETURN VALUE: none
- *   SIDE EFFECTS: copies a plane from the build buffer to video memory
- */  
-static void
-copy_status (unsigned char* img, unsigned short scr_addr)
-{
-  /*
-   * memcpy is actually probably good enough here, and is usually
-   * implemented using ISA-specific features like those below,
-   * but the code here provides an example of x86 string moves
-   */
-  asm volatile (
-        "cld                                                 ;"
-        "movl $1440,%%ecx                                   ;"
-        "rep movsb    # copy ECX bytes from M[ESI] to M[EDI]  "
-	: /* no outputs */
-	: "S" (img), "D" (mem_image + scr_addr)
-	: "eax", "ecx", "memory"
-		);
-}
  
 
 #if defined(TEXT_RESTORE_PROGRAM)
