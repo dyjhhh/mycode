@@ -137,6 +137,7 @@ static void set_graphics_registers (unsigned short table[NUM_GRAPHICS_REGS]);
 static void write_font_data ();
 static void set_text_mode_3 (int clear_scr);
 static void copy_image (unsigned char* img, unsigned short scr_addr);
+
 static void fill_palette();
 
 /* 
@@ -301,8 +302,8 @@ set_mode_X (void (*horiz_fill_fn) (int, int, unsigned char[SCROLL_X_DIM]),
 
     /* One display page goes at the start of video memory. */
     /* modified 0x0000 to 6000 */
-    target_img = 0x0000 + 18*320; 
-
+ target_img = 0x0000 + 18*320; 
+//target_img = 0x4000;
     /* Map video memory and obtain permission for VGA port access. */
     if (open_memory_and_ports () == -1)
         return -1;
@@ -493,6 +494,7 @@ set_view_window (int scr_x, int scr_y)
  *                 shifts the VGA display source to point to the new image
  */   
 void
+//show_screen()
 show_screen (unsigned char* buf)
 {
     unsigned char* addr;  /* source address for copy             */
@@ -516,7 +518,7 @@ show_screen (unsigned char* buf)
 	SET_WRITE_MASK (1 << (i + 8));
 	/* added this line */
 	//copy_status (status_bar[i], 0x0000);
-	memcpy(mem_image, buf + (i*1440), 1440);
+memcpy(mem_image, buf + (i*1440), 1440);
 	copy_image (addr + ((p_off - i + 4) & 3) * SCROLL_SIZE + (p_off < i), 
 	            target_img);
     }
